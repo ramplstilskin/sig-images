@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Signature Generator – MPS Sonnenstudio Berlin</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      color: #1a1a1a;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container { max-width: 860px; margin: 0 auto; }
+
+    header { margin-bottom: 32px; }
+    header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+    header p  { font-size: 13px; color: #666; margin-top: 4px; }
+
+    /* ── Cards ── */
+    .card, .preview-card, .source-card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 28px 32px;
+      margin-bottom: 28px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08);
+    }
+
+    .card h2, .preview-card h2, .source-card h2 {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: #888;
+      margin-bottom: 20px;
+    }
+
+    /* ── Form fields ── */
+    .fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field.full { grid-column: 1 / -1; }
+
+    label { font-size: 12px; font-weight: 600; color: #555; }
+
+    input, select {
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 9px 12px;
+      font-size: 14px;
+      font-family: Arial, sans-serif;
+      color: #1a1a1a;
+      transition: border-color .15s;
+      outline: none;
+      background: #fff;
+    }
+
+    input:focus { border-color: #1a1a1a; }
+    input::placeholder { color: #bbb; }
+
+    /* ── Custom photo dropdown ── */
+    .photo-dropdown { position: relative; }
+
+    .photo-dropdown-trigger {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 7px 12px;
+      font-size: 14px;
+      font-family: Arial, sans-serif;
+      color: #1a1a1a;
+      background: #fff;
+      cursor: pointer;
+      transition: border-color .15s;
+      user-select: none;
+    }
+
+    .photo-dropdown-trigger:hover { border-color: #bbb; }
+    .photo-dropdown.open .photo-dropdown-trigger { border-color: #1a1a1a; }
+
+    .trigger-thumb {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #e8e8e8;
+      flex-shrink: 0;
+      background-size: cover;
+      background-position: center;
+    }
+
+    .trigger-label { flex: 1; color: #1a1a1a; }
+    .trigger-label.placeholder { color: #bbb; }
+
+    .trigger-chevron { flex-shrink: 0; transition: transform .2s; color: #aaa; }
+    .photo-dropdown.open .trigger-chevron { transform: rotate(180deg); }
+
+    .photo-dropdown-options {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px);
+      left: 0; right: 0;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,.1);
+      max-height: 260px;
+      overflow-y: auto;
+      z-index: 100;
+      padding: 4px;
+    }
+
+    .photo-dropdown.open .photo-dropdown-options { display: block; }
+
+    .photo-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background .1s;
+    }
+
+    .photo-option:hover { background: #f5f5f5; }
+    .photo-option.selected { background: #f0f0f0; font-weight: 600; }
+
+    .option-thumb {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: #e8e8e8;
+    }
+
+    /* ── Pill toggles (shared style for location + project mode) ── */
+    .pill-toggle {
+      display: inline-flex;
+      background: #f0f0f0;
+      border-radius: 8px;
+      padding: 3px;
+      gap: 2px;
+      margin-bottom: 20px;
+    }
+
+    .pill-toggle button {
+      border: none;
+      background: transparent;
+      border-radius: 6px;
+      padding: 7px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: Arial, sans-serif;
+      color: #888;
+      cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+
+    .pill-toggle button.active {
+      background: #fff;
+      color: #1a1a1a;
+      box-shadow: 0 1px 3px rgba(0,0,0,.1);
+    }
+
+    /* ── Photo controls ── */
+    .photo-controls {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      margin-top: 14px;
+      padding: 16px;
+      background: #fafafa;
+      border: 1px solid #eee;
+      border-radius: 8px;
+    }
+
+    .photo-preview-circle {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      overflow: hidden;
+      background: #e8e8e8;
+      flex-shrink: 0;
+      background-repeat: no-repeat;
+    }
+
+    .sliders { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+
+    .slider-row { display: flex; align-items: center; gap: 10px; }
+
+    .slider-row > label {
+      font-size: 11px;
+      font-weight: 600;
+      color: #999;
+      width: 70px;
+      flex-shrink: 0;
+      margin: 0;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      border: none;
+      padding: 0;
+      height: 4px;
+      accent-color: #1a1a1a;
+      cursor: pointer;
+      background: transparent;
+      border-radius: 0;
+    }
+
+    .slider-val { font-size: 11px; color: #bbb; width: 34px; text-align: right; flex-shrink: 0; }
+
+    /* ── Project image section ── */
+    .proj-section-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .proj-section-label label { margin: 0; }
+
+    .proj-mode-toggle {
+      display: inline-flex;
+      background: #f0f0f0;
+      border-radius: 6px;
+      padding: 2px;
+      gap: 2px;
+    }
+
+    .proj-mode-toggle button {
+      border: none;
+      background: transparent;
+      border-radius: 5px;
+      padding: 4px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: Arial, sans-serif;
+      color: #999;
+      cursor: pointer;
+      transition: background .15s, color .15s;
+    }
+
+    .proj-mode-toggle button.active {
+      background: #fff;
+      color: #1a1a1a;
+      box-shadow: 0 1px 2px rgba(0,0,0,.08);
+    }
+
+    /* ── Thumbnail picker ── */
+    .proj-picker {
+      margin-top: 10px;
+    }
+
+    .picker-hint {
+      font-size: 11px;
+      color: #aaa;
+      margin-bottom: 10px;
+    }
+
+    .picker-hint strong { color: #666; }
+
+    .thumb-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+      gap: 6px;
+      max-height: 300px;
+      overflow-y: auto;
+      padding: 12px;
+      background: #fafafa;
+      border: 1px solid #eee;
+      border-radius: 8px;
+    }
+
+    .thumb-item {
+      position: relative;
+      cursor: pointer;
+      border-radius: 4px;
+      overflow: hidden;
+      aspect-ratio: 2/3;
+      background: #e0e0e0;
+      border: 2px solid transparent;
+      transition: border-color .15s, transform .1s;
+    }
+
+    .thumb-item:hover { transform: scale(1.04); }
+
+    .thumb-item.selected { border-color: #1a1a1a; }
+
+    .thumb-item.maxed:not(.selected) { opacity: .35; cursor: default; }
+    .thumb-item.maxed:not(.selected):hover { transform: none; }
+
+    .thumb-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      pointer-events: none;
+    }
+
+    .thumb-badge {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #1a1a1a;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .proj-count {
+      font-size: 11px;
+      color: #aaa;
+      margin-top: 8px;
+      text-align: right;
+    }
+
+    .proj-count.complete { color: #2e7d32; }
+
+    /* ── Preview ── */
+    .preview-card h2 { margin-bottom: 24px; }
+
+    .preview-wrapper {
+      background: #fafafa;
+      border: 1px solid #eee;
+      border-radius: 6px;
+      padding: 24px;
+      overflow-x: auto;
+    }
+
+    /* ── Buttons ── */
+    .actions { display: flex; align-items: center; gap: 12px; margin-bottom: 28px; }
+
+    .copy-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #1a1a1a;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 24px;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: Arial, sans-serif;
+      cursor: pointer;
+      transition: background .15s, transform .1s;
+    }
+
+    .copy-btn:hover  { background: #333; }
+    .copy-btn:active { transform: scale(.98); }
+    .copy-btn.copied { background: #2e7d32; }
+
+    .copy-btn.secondary {
+      background: #fff;
+      color: #1a1a1a;
+      border: 1.5px solid #ddd;
+    }
+
+    .copy-btn.secondary:hover  { background: #f5f5f5; border-color: #bbb; }
+    .copy-btn.secondary.copied { background: #e8f5e9; border-color: #81c784; color: #2e7d32; }
+
+    .copy-hint { font-size: 12px; color: #999; }
+
+    /* ── Source textarea ── */
+    .source-card h2 { margin-bottom: 8px; }
+
+    .source-desc {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 14px;
+      line-height: 1.5;
+    }
+
+    .source-desc strong { color: #555; }
+
+    #html-source {
+      width: 100%;
+      height: 140px;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      line-height: 1.4;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      padding: 10px 12px;
+      resize: vertical;
+      color: #444;
+      background: #fafafa;
+      outline: none;
+    }
+
+    .source-actions { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+
+    @media (max-width: 540px) {
+      .fields { grid-template-columns: 1fr; }
+      .field.full { grid-column: 1; }
+      .card, .preview-card, .source-card { padding: 20px; }
+      .photo-controls { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+  <header>
+    <h1>Email Signature Generator</h1>
+    <p>MPS Sonnenstudio Berlin · Fill in your details, then copy the signature below.</p>
+  </header>
+
+  <div class="card">
+    <h2>Your Details</h2>
+
+    <!-- Location toggle -->
+    <div class="pill-toggle">
+      <button id="loc-berlin" class="active" onclick="setLocation('berlin')">Berlin</button>
+      <button id="loc-koeln"  onclick="setLocation('koeln')">Köln</button>
+    </div>
+
+    <div class="fields">
+
+      <div class="field">
+        <label for="inp-name">Full Name</label>
+        <input id="inp-name" type="text" placeholder="e.g. Anna Müller">
+      </div>
+
+      <div class="field">
+        <label for="inp-title">Job Title</label>
+        <input id="inp-title" type="text" placeholder="e.g. Kameraassistenz">
+      </div>
+
+      <div class="field">
+        <label for="inp-email">Email Address</label>
+        <input id="inp-email" type="email" placeholder="name@sonnenstudio.film">
+      </div>
+
+      <div class="field">
+        <label for="inp-phone">Phone</label>
+        <input id="inp-phone" type="tel" placeholder="+49 …">
+      </div>
+
+      <!-- ── Profile photo ── -->
+      <div class="field full">
+        <label for="inp-photo">Profile Photo</label>
+        <input type="hidden" id="inp-photo">
+        <div class="photo-dropdown" id="photo-dropdown">
+          <div class="photo-dropdown-trigger" onclick="togglePhotoDropdown()">
+            <div class="trigger-thumb" id="trigger-thumb"></div>
+            <span class="trigger-label placeholder" id="trigger-label">— Loading photos… —</span>
+            <svg class="trigger-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="photo-dropdown-options" id="photo-options"></div>
+        </div>
+
+        <div class="photo-controls">
+          <div class="photo-preview-circle" id="photo-preview"></div>
+          <div class="sliders">
+            <div class="slider-row">
+              <label for="inp-zoom">Size</label>
+              <input type="range" id="inp-zoom" min="30" max="300" value="100" step="5">
+              <span class="slider-val" id="zoom-val">100%</span>
+            </div>
+            <div class="slider-row">
+              <label for="inp-posx">Horizontal</label>
+              <input type="range" id="inp-posx" min="0" max="100" value="50" step="1">
+              <span class="slider-val" id="posx-val">50%</span>
+            </div>
+            <div class="slider-row">
+              <label for="inp-posy">Vertical</label>
+              <input type="range" id="inp-posy" min="0" max="100" value="50" step="1">
+              <span class="slider-val" id="posy-val">50%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Project images ── -->
+      <div class="field full">
+        <div class="proj-section-label">
+          <label>Project Images</label>
+          <div class="proj-mode-toggle">
+            <button id="proj-auto-btn"   class="active" onclick="setProjectMode('auto')">Auto</button>
+            <button id="proj-manual-btn" onclick="setProjectMode('manual')">Custom</button>
+          </div>
+        </div>
+
+        <div id="proj-picker" class="proj-picker" style="display:none;">
+          <p class="picker-hint">Click to select. <strong>Order of selection = order in signature.</strong> Click a selected image to remove it.</p>
+          <div class="thumb-grid" id="thumb-grid"></div>
+          <p class="proj-count" id="proj-count">0 / 4 selected</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── Live preview ── -->
+  <div class="preview-card">
+    <h2>Preview</h2>
+    <div class="preview-wrapper">
+      <div id="sig-preview"></div>
+    </div>
+  </div>
+
+  <!-- ── Copy buttons ── -->
+  <div class="actions">
+    <button class="copy-btn" id="copy-btn" onclick="copySignature()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="9" y="9" width="13" height="13" rx="2"/>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+      </svg>
+      Copy Signature
+    </button>
+    <span class="copy-hint">For Gmail, Outlook, Apple Mail — paste directly into the signature editor.</span>
+  </div>
+
+  <!-- ── HTML source (IONOS) ── -->
+  <div class="source-card">
+    <h2>For IONOS &amp; other webmail</h2>
+    <p class="source-desc">
+      In your email settings, open the signature editor and click the <strong>&lt;/&gt; Source</strong> or <strong>HTML</strong> button.
+      Then copy the code below and paste it there.
+    </p>
+    <textarea id="html-source" readonly spellcheck="false"></textarea>
+    <div class="source-actions">
+      <button class="copy-btn secondary" id="copy-source-btn" onclick="copySource()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+        </svg>
+        Copy HTML Source
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ── Locations ────────────────────────────────────────────────────────
+  const LOCATIONS = {
+    berlin: {
+      company: 'MPS Sonnenstudio Berlin',
+      address: 'Sonnenallee 65',
+      mapsUrl: 'https://maps.app.goo.gl/aTY43GCtmZAKgG8n6',
+    },
+    koeln: {
+      company: 'MPS Sonnenstudio Köln',
+      address: 'Höninger Weg 280',
+      mapsUrl: 'https://www.google.com/maps/search/?api=1&query=H%C3%B6ninger+Weg+280%2C+K%C3%B6ln',
+    },
+  };
+
+  let currentLocation = 'berlin';
+
+  // ── Project posters — loaded dynamically from GitHub ─────────────────
+  // To add a new project: upload it to the /projects/ folder in the
+  // ramplstilskin/sig-images repo. It will appear here automatically.
+  let PROJECTS = [];
+
+  // ── Fixed auto-update URLs ───────────────────────────────────────────
+  // Replace YOUR-GITHUB-USERNAME with the actual GitHub username once set up.
+  // To update project images in all signatures: overwrite these files in the GitHub repo.
+  const SIG_BASE = 'https://ramplstilskin.github.io/sig-images';
+  const AUTO_IMAGES = [
+    `${SIG_BASE}/1.jpg`,
+    `${SIG_BASE}/2.jpg`,
+    `${SIG_BASE}/3.jpg`,
+    `${SIG_BASE}/4.jpg`,
+  ];
+
+  // ── Project mode state ───────────────────────────────────────────────
+  let projectMode = 'auto';
+  let selectedProjects = [...AUTO_IMAGES];
+
+  function titleFromUrl(url) {
+    return url.split('/').pop()
+      .replace(/\.[^.]+$/, '')               // remove extension
+      .replace(/_\d{10,}-[\w-]+$/, '')       // remove timestamp-hash
+      .replace(/[-_]+/g, ' ')               // dashes/underscores to spaces
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function setProjectMode(mode) {
+    projectMode = mode;
+    document.getElementById('proj-auto-btn').classList.toggle('active', mode === 'auto');
+    document.getElementById('proj-manual-btn').classList.toggle('active', mode === 'manual');
+    document.getElementById('proj-picker').style.display = mode === 'manual' ? '' : 'none';
+
+    if (mode === 'auto') {
+      selectedProjects = [...AUTO_IMAGES];
+    } else {
+      selectedProjects = [];
+    }
+    renderThumbs();
+    update();
+  }
+
+  function renderThumbs() {
+    const grid = document.getElementById('thumb-grid');
+    if (!PROJECTS.length) return; // still loading
+    const atMax = selectedProjects.length >= 4;
+
+    grid.innerHTML = '';
+    PROJECTS.forEach(url => {
+      const selIdx = selectedProjects.indexOf(url);
+      const isSelected = selIdx !== -1;
+
+      const item = document.createElement('div');
+      item.className = 'thumb-item' +
+        (isSelected ? ' selected' : '') +
+        (atMax && !isSelected ? ' maxed' : '');
+      item.title = titleFromUrl(url);
+
+      const img = document.createElement('img');
+      img.src = url;
+      img.alt = titleFromUrl(url);
+      img.loading = 'lazy';
+      item.appendChild(img);
+
+      if (isSelected) {
+        const badge = document.createElement('div');
+        badge.className = 'thumb-badge';
+        badge.textContent = selIdx + 1;
+        item.appendChild(badge);
+      }
+
+      item.addEventListener('click', () => {
+        if (isSelected) {
+          selectedProjects = selectedProjects.filter(u => u !== url);
+        } else if (selectedProjects.length < 4) {
+          selectedProjects = [...selectedProjects, url];
+        }
+        renderThumbs();
+        update();
+      });
+
+      grid.appendChild(item);
+    });
+
+    const count = document.getElementById('proj-count');
+    const n = selectedProjects.length;
+    count.textContent = `${n} / 4 selected`;
+    count.className = 'proj-count' + (n === 4 ? ' complete' : '');
+  }
+
+  // ── Signature template ───────────────────────────────────────────────
+  function buildSignature({ name, title, email, phone, photoUrl, zoom, posX, posY, location, projectImages }) {
+    const loc       = LOCATIONS[location] || LOCATIONS.berlin;
+    const emailHref = 'mailto:' + email;
+    const phoneHref = 'tel:' + phone.replace(/\s/g, '');
+    const nameEsc   = esc(name  || '');
+    const titleEsc  = esc(title || '');
+    const emailEsc  = esc(email || '');
+    const phoneEsc  = esc(phone || '');
+
+    const photoStyle = photoUrl
+      ? `width:100px;height:100px;border-radius:50%;overflow:hidden;display:inline-block;` +
+        `background-image:url('${esc(photoUrl)}');background-size:${zoom}px auto;` +
+        `background-position:${posX}% ${posY}%;background-repeat:no-repeat;background-color:#e0e0e0;`
+      : `width:100px;height:100px;border-radius:50%;display:inline-block;background-color:#e0e0e0;`;
+
+    const projCells = projectImages.map(url =>
+      `<td style="padding:0;margin:0;border:0;"><img style="width:100px;height:120px;object-fit:cover;" src="${esc(url)}" alt=""></td>`
+    ).join('\n       ');
+
+    return `<table style="width:100%;max-width:400px;font-family:Arial,sans-serif;font-size:16px;border-collapse:collapse;background-color:#ffffff;">
+ <tbody>
+  <tr>
+   <td style="padding:10px;text-align:center;vertical-align:middle;"><div style="${photoStyle}"></div></td>
+   <td style="padding:10px;">
+    <p style="margin:0;font-weight:300;font-size:18px;text-align:right;"><strong>${nameEsc}</strong></p>
+    <p style="margin:0;font-weight:300;font-size:12px;text-align:right;margin-bottom:5px;">${titleEsc}</p>
+    <p style="margin:0;font-weight:300;font-size:12px;text-align:right;"><strong>${esc(loc.company)}</strong></p>
+    <p style="margin:0;font-weight:300;font-size:12px;text-align:right;"><strong>Motion Picture Services</strong></p>
+    <p style="margin:0;font-weight:300;font-size:10px;text-align:right;margin-bottom:5px;">GF: R. Heesch, M. Müller, T. Fleig</p>
+    <p style="margin:0;font-weight:300;font-size:12px;text-align:right;">Website: <a style="color:inherit;" href="https://sonnenstudio.film" target="_blank" rel="noopener">www.sonnenstudio.film</a></p>
+    <p style="margin:0;font-weight:300;font-size:12px;text-align:right;">Address: <a style="color:inherit;" href="${esc(loc.mapsUrl)}" target="_blank" rel="noopener">${esc(loc.address)}</a></p>
+    <p style="margin:0;font-weight:300;font-size:12px;text-align:right;">Email: <a style="color:inherit;" href="${emailHref}" target="_blank">${emailEsc}</a></p>
+    <p style="margin:0;font-weight:300;font-size:12px;text-align:right;">Phone: <a style="color:inherit;" href="${phoneHref}" target="_blank" rel="noopener">${phoneEsc}</a></p>
+   </td>
+  </tr>
+  <tr>
+   <td style="padding-top:10px;padding-bottom:20px;" colspan="2"><img style="width:100%;height:auto;" src="https://static.wixstatic.com/media/42e252_91abc2d73eee4e00ad594ccf183382a5~mv2.gif" alt="Banner"></td>
+  </tr>
+  <tr>
+   <td style="padding:0;margin:0;border:0;" colspan="2">
+    <table style="width:100%;border-collapse:collapse;">
+     <tbody>
+      <tr>
+       ${projCells}
+      </tr>
+     </tbody>
+    </table>
+   </td>
+  </tr>
+ </tbody>
+</table>`;
+  }
+
+  function esc(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  // ── Read all inputs ──────────────────────────────────────────────────
+  function getValues() {
+    return {
+      name:          document.getElementById('inp-name').value.trim(),
+      title:         document.getElementById('inp-title').value.trim(),
+      email:         document.getElementById('inp-email').value.trim(),
+      phone:         document.getElementById('inp-phone').value.trim(),
+      photoUrl:      document.getElementById('inp-photo').value,
+      zoom:          parseInt(document.getElementById('inp-zoom').value),
+      posX:          parseInt(document.getElementById('inp-posx').value),
+      posY:          parseInt(document.getElementById('inp-posy').value),
+      location:      currentLocation,
+      projectImages: selectedProjects,
+    };
+  }
+
+  // ── Live update ──────────────────────────────────────────────────────
+  function update() {
+    const v = getValues();
+
+    document.getElementById('zoom-val').textContent = v.zoom + '%';
+    document.getElementById('posx-val').textContent = v.posX + '%';
+    document.getElementById('posy-val').textContent = v.posY + '%';
+
+    const preview = document.getElementById('photo-preview');
+    if (v.photoUrl) {
+      const pz = Math.round(v.zoom * 0.72);
+      preview.style.backgroundImage    = `url('${v.photoUrl}')`;
+      preview.style.backgroundSize     = `${pz}px auto`;
+      preview.style.backgroundPosition = `${v.posX}% ${v.posY}%`;
+    } else {
+      preview.style.backgroundImage = '';
+    }
+
+    const html = buildSignature(v);
+    document.getElementById('sig-preview').innerHTML = html;
+    document.getElementById('html-source').value = html;
+  }
+
+  const watchedIds = ['inp-name', 'inp-title', 'inp-email', 'inp-phone',
+                      'inp-photo', 'inp-zoom', 'inp-posx', 'inp-posy'];
+  watchedIds.forEach(id => document.getElementById(id).addEventListener('input', update));
+
+  // ── Location ─────────────────────────────────────────────────────────
+  function setLocation(loc) {
+    currentLocation = loc;
+    document.getElementById('loc-berlin').classList.toggle('active', loc === 'berlin');
+    document.getElementById('loc-koeln').classList.toggle('active',  loc === 'koeln');
+    update();
+  }
+
+  // ── Copy HTML source ─────────────────────────────────────────────────
+  async function copySource() {
+    await navigator.clipboard.writeText(buildSignature(getValues()));
+    flashBtn('copy-source-btn');
+  }
+
+  // ── Copy rich signature ──────────────────────────────────────────────
+  async function copySignature() {
+    const html  = buildSignature(getValues());
+    const stage = document.createElement('div');
+    stage.style.cssText = 'position:fixed;left:-9999px;top:0;pointer-events:none;';
+    stage.innerHTML = html;
+    document.body.appendChild(stage);
+
+    let success = false;
+    try {
+      const range = document.createRange();
+      range.selectNodeContents(stage);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      success = document.execCommand('copy');
+      sel.removeAllRanges();
+    } catch (_) {}
+
+    document.body.removeChild(stage);
+
+    if (!success) {
+      try {
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'text/html': new Blob([html], { type: 'text/html' }) })
+        ]);
+      } catch (_) {}
+    }
+
+    flashBtn('copy-btn');
+  }
+
+  // ── Button feedback ──────────────────────────────────────────────────
+  const btnLabels = {
+    'copy-btn':
+      `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copy Signature`,
+    'copy-source-btn':
+      `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> Copy HTML Source`,
+  };
+
+  function flashBtn(id) {
+    const btn = document.getElementById(id);
+    btn.innerHTML = '&#10003;&nbsp; Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.innerHTML = btnLabels[id]; btn.classList.remove('copied'); }, 2500);
+  }
+
+  // ── Load team photos from GitHub ─────────────────────────────────────
+  // To add/remove a team member: upload/delete their photo in the
+  // /team/ folder of ramplstilskin/sig-images. File name = display name.
+  async function loadTeamPhotos() {
+    const label = document.getElementById('trigger-label');
+    try {
+      const resp  = await fetch('https://api.github.com/repos/ramplstilskin/sig-images/contents/team');
+      const files = await resp.json();
+      const imageExts = ['.jpg', '.jpeg', '.png', '.webp'];
+      const photos = files
+        .filter(f => f.type === 'file' && imageExts.some(ext => f.name.toLowerCase().endsWith(ext)))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+      const container = document.getElementById('photo-options');
+      container.innerHTML = '';
+      photos.forEach(f => {
+        const name = f.name.replace(/\.[^.]+$/, '');
+        const div  = document.createElement('div');
+        div.className = 'photo-option';
+        div.dataset.url = f.download_url;
+        div.dataset.name = name;
+        div.innerHTML = `<img class="option-thumb" src="${f.download_url}" alt="${name}" loading="lazy"><span>${name}</span>`;
+        div.addEventListener('click', () => selectPhoto(f.download_url, name));
+        container.appendChild(div);
+      });
+
+      label.textContent = '— Select your photo —';
+    } catch (_) {
+      label.textContent = '— Could not load photos —';
+    }
+  }
+
+  function togglePhotoDropdown() {
+    document.getElementById('photo-dropdown').classList.toggle('open');
+  }
+
+  function selectPhoto(url, name) {
+    document.getElementById('inp-photo').value = url;
+
+    const thumb = document.getElementById('trigger-thumb');
+    const label = document.getElementById('trigger-label');
+    thumb.style.backgroundImage = `url('${url}')`;
+    label.textContent = name;
+    label.classList.remove('placeholder');
+
+    // Mark selected option
+    document.querySelectorAll('.photo-option').forEach(el => {
+      el.classList.toggle('selected', el.dataset.url === url);
+    });
+
+    document.getElementById('photo-dropdown').classList.remove('open');
+    update();
+  }
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', e => {
+    const dd = document.getElementById('photo-dropdown');
+    if (dd && !dd.contains(e.target)) dd.classList.remove('open');
+  });
+
+  // ── Load project posters from GitHub ────────────────────────────────
+  async function loadProjects() {
+    const grid = document.getElementById('thumb-grid');
+    grid.innerHTML = '<p style="padding:12px;color:#aaa;font-size:13px;">Loading projects…</p>';
+
+    try {
+      const resp = await fetch('https://api.github.com/repos/ramplstilskin/sig-images/contents/projects');
+      const files = await resp.json();
+      const imageExts = ['.jpg', '.jpeg', '.png', '.webp'];
+      PROJECTS = files
+        .filter(f => f.type === 'file' && imageExts.some(ext => f.name.toLowerCase().endsWith(ext)))
+        .map(f => f.download_url);
+      renderThumbs();
+    } catch (_) {
+      grid.innerHTML = '<p style="padding:12px;color:#c0392b;font-size:13px;">Could not load projects — check your connection.</p>';
+    }
+  }
+
+  // ── Init ─────────────────────────────────────────────────────────────
+  loadTeamPhotos();
+  loadProjects();
+  update();
+</script>
+
+</body>
+</html>
